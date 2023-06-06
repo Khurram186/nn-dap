@@ -1,0 +1,9 @@
+variables:
+  azure-service-connection : 'khurram-dap-sc'
+  imageName: 'myPythonAppImage'
+  imageTag: '1.1'
+  acrName: 'nndapacr45975'
+  backendAzureRmResourceGroupName: 'nntfstate'
+  backendAzureRmStorageAccountName: 'nntfstate19107'
+  backendAzureRmContainerName: 'nntfstate'
+  backendAzureRmKey: 'terraform.tfstate'

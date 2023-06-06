@@ -1,0 +1,75 @@
+trigger:
+  branches:
+    include:
+      - main
+parameters:
+  - name: env
+    displayName: Select Deployment Environment
+    default: dev
+    type: string
+    values:
+      - dev
+      - tst
+      - acc
+      - prd
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - template: ${{variables['System.DefaultWorkingDirectory']}}/azure-pipeline/variables/common.yaml
+  - template: ${{variables['System.DefaultWorkingDirectory']}}/azure-pipeline/variables/${{ parameters.env }}.yaml
+  - name: workingDirectory
+    value: ${{variables['System.DefaultWorkingDirectory']}}/infrastructure
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
+    addToPath: true
+
+- script: |
+    curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp.gpg
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+    sudo apt-get update && sudo apt-get install terraform -y
+  displayName: 'Install Terraform'
+
+- checkout: self
+
+- script: |
+    ls
+    cd infrastructure
+    az login
+    terraform init
+    terraform validate
+    terraform plan -out=tfplan
+    terraform apply "tfplan"
+  displayName: 'Terraform Init, Validate, Plan and apply'
+
+    # terraform init -backend-config="storage_account_name=$(backendStorageAccount)" \
+    #                -backend-config="container_name=$(backendContainerName)" \
+    #                -backend-config="key=$(backendKey)" \
+    #                -backend-config="resource_group_name=$(backendResourceGroupName)" \
+    #                -backend-config="access_key=$(backendStorageAccountKey)"
+
+# - stage: Test
+#   displayName: 'Terraform Test'
+#   jobs:
+#     - job: RunTerraformTests
+#       displayName: 'Run Terraform Tests'
+#       steps:
+#         - checkout: self
+
+#         - task: UseGoVersion@0
+#           inputs:
+#             version: '1.x'
+
+#         - task: Go@0
+#           inputs:
+#             command: 'install'
+#             arguments: 'github.com/gruntwork-io/terratest/modules/terratest'
+
+#         - task: Go@0
+#           inputs:
+#             command: 'test'
+#             arguments: './tests'
